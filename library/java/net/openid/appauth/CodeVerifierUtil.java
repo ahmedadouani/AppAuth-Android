@@ -150,6 +150,34 @@ public final class CodeVerifierUtil {
     }
 
     /**
+     * Produces a nonce from a raw nonce, using SHA-256 as the method needed by third party
+     * to prove the origin of id-token generation.
+     * All Android devices _should_ support SHA-256.
+     */
+    public static String nonceS256ForRawNonce(String rawNonce) {
+        try {
+            MessageDigest digest = null;
+            try {
+                digest = MessageDigest.getInstance("SHA-256");
+            } catch (NoSuchAlgorithmException e1) {
+                // Never happens, normally.
+                Logger.warn("SHA-256 is not supported on this device! Using plain challenge", e1);
+                e1.printStackTrace();
+            }
+            digest.reset();
+            // bin to hex
+            byte[] data = digest.digest(rawNonce.getBytes());
+            StringBuilder hex = new StringBuilder(data.length * 2);
+            for (byte b : data)
+                hex.append(String.format("%02x", b & 0xFF));
+            return hex.toString();
+        } catch (Exception e) {
+            Logger.warn("Preparing nonce from rawNonce failed", e);
+            return null;
+        }
+    }
+
+    /**
      * Returns the challenge method utilized on this system: typically
      * {@link AuthorizationRequest#CODE_CHALLENGE_METHOD_S256 SHA-256} if supported by
      * the system, {@link AuthorizationRequest#CODE_CHALLENGE_METHOD_PLAIN plain} otherwise.

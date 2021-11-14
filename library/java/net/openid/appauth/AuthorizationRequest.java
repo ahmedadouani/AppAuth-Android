@@ -338,6 +338,7 @@ public class AuthorizationRequest implements AuthorizationManagementRequest {
     private static final String KEY_SCOPE = "scope";
     private static final String KEY_STATE = "state";
     private static final String KEY_NONCE = "nonce";
+    private static final String KEY_RAW_NONCE = "rawNonce";
     private static final String KEY_CODE_VERIFIER = "codeVerifier";
     private static final String KEY_CODE_VERIFIER_CHALLENGE = "codeVerifierChallenge";
     private static final String KEY_CODE_VERIFIER_CHALLENGE_METHOD = "codeVerifierChallengeMethod";
@@ -477,6 +478,16 @@ public class AuthorizationRequest implements AuthorizationManagementRequest {
     public final String nonce;
 
     /**
+     * String value used to generate the nonce value : nonce <= sha256 of (rawNonce).
+     * This raw value is needed to prove to third party the origin of id Token generation.
+     *
+     * @see "OpenID Connect Core 1.0, Section 3.1.2.1
+     * <https://openid.net/specs/openid-connect-core-1_0.html#rfc.section.3.1.2.1>"
+     */
+    @Nullable
+    public final String rawNonce;
+
+    /**
      * The proof key for code exchange. This is an opaque value used to associate an authorization
      * request with a subsequent code exchange, in order to prevent any eavesdropping party from
      * intercepting and using the code before the original requestor. If PKCE is disabled due to
@@ -609,6 +620,9 @@ public class AuthorizationRequest implements AuthorizationManagementRequest {
         private String mNonce;
 
         @Nullable
+        private String mRawNonce;
+
+        @Nullable
         private String mCodeVerifier;
 
         @Nullable
@@ -644,7 +658,8 @@ public class AuthorizationRequest implements AuthorizationManagementRequest {
             setResponseType(responseType);
             setRedirectUri(redirectUri);
             setState(AuthorizationManagementUtil.generateRandomState());
-            setNonce(AuthorizationManagementUtil.generateRandomState());
+            mRawNonce = AuthorizationManagementUtil.generateRandomState();
+            setNonce(CodeVerifierUtil.nonceS256ForRawNonce(mRawNonce));
             setCodeVerifier(CodeVerifierUtil.generateRandomCodeVerifier());
         }
 
@@ -1075,6 +1090,7 @@ public class AuthorizationRequest implements AuthorizationManagementRequest {
                     mScope,
                     mState,
                     mNonce,
+                    mRawNonce,
                     mCodeVerifier,
                     mCodeVerifierChallenge,
                     mCodeVerifierChallengeMethod,
@@ -1097,6 +1113,7 @@ public class AuthorizationRequest implements AuthorizationManagementRequest {
             @Nullable String scope,
             @Nullable String state,
             @Nullable String nonce,
+            @Nullable String rawNonce,
             @Nullable String codeVerifier,
             @Nullable String codeVerifierChallenge,
             @Nullable String codeVerifierChallengeMethod,
@@ -1119,6 +1136,7 @@ public class AuthorizationRequest implements AuthorizationManagementRequest {
         this.scope = scope;
         this.state = state;
         this.nonce = nonce;
+        this.rawNonce = rawNonce;
         this.codeVerifier = codeVerifier;
         this.codeVerifierChallenge = codeVerifierChallenge;
         this.codeVerifierChallengeMethod = codeVerifierChallengeMethod;
@@ -1224,6 +1242,7 @@ public class AuthorizationRequest implements AuthorizationManagementRequest {
         JsonUtil.putIfNotNull(json, KEY_UI_LOCALES, uiLocales);
         JsonUtil.putIfNotNull(json, KEY_STATE, state);
         JsonUtil.putIfNotNull(json, KEY_NONCE, nonce);
+        JsonUtil.putIfNotNull(json, KEY_RAW_NONCE, rawNonce);
         JsonUtil.putIfNotNull(json, KEY_CODE_VERIFIER, codeVerifier);
         JsonUtil.putIfNotNull(json, KEY_CODE_VERIFIER_CHALLENGE, codeVerifierChallenge);
         JsonUtil.putIfNotNull(json, KEY_CODE_VERIFIER_CHALLENGE_METHOD,
@@ -1267,6 +1286,7 @@ public class AuthorizationRequest implements AuthorizationManagementRequest {
                 JsonUtil.getStringIfDefined(json, KEY_SCOPE),
                 JsonUtil.getStringIfDefined(json, KEY_STATE),
                 JsonUtil.getStringIfDefined(json, KEY_NONCE),
+                JsonUtil.getStringIfDefined(json, KEY_RAW_NONCE),
                 JsonUtil.getStringIfDefined(json, KEY_CODE_VERIFIER),
                 JsonUtil.getStringIfDefined(json, KEY_CODE_VERIFIER_CHALLENGE),
                 JsonUtil.getStringIfDefined(json, KEY_CODE_VERIFIER_CHALLENGE_METHOD),
