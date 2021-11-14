@@ -84,6 +84,11 @@ public final class CodeVerifierUtil {
     private static final Pattern REGEX_CODE_VERIFIER =
             Pattern.compile("^[0-9a-zA-Z\\-\\.\\_\\~]{43,128}$");
 
+    /**
+     * Hex value used to generate string from encrypted raw nonce data.
+     *
+     */
+    private static final int HEXA_NONCE_VALUE = 0xFF;
 
     private CodeVerifierUtil() {
         throw new IllegalStateException("This type is not intended to be instantiated");
@@ -168,8 +173,9 @@ public final class CodeVerifierUtil {
             // bin to hex
             byte[] data = digest.digest(rawNonce.getBytes());
             StringBuilder hex = new StringBuilder(data.length * 2);
-            for (byte b : data)
-                hex.append(String.format("%02x", b & 0xFF));
+            for (byte b : data) {
+                hex.append(String.format("%02x", b & HEXA_NONCE_VALUE));
+            }
             return hex.toString();
         } catch (Exception e) {
             Logger.warn("Preparing nonce from rawNonce failed", e);
